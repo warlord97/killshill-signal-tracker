@@ -1,0 +1,3 @@
+# Root level
+node_modules/
+.env

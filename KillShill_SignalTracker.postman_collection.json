@@ -1,0 +1,740 @@
+{
+  "info": {
+    "name": "KillShill Signal Tracker API",
+    "description": "Complete API collection for the KillShill Trading Signal Tracker application.\n\n## Base URL\n`http://localhost:5000`\n\n## Overview\nThis API allows you to create and manage trading signals with live Binance price integration.\n\n## Signal Status Flow\n- `OPEN` → Signal is active and being tracked\n- `TARGET_HIT` → Price reached target level (locked forever)\n- `STOPLOSS_HIT` → Price hit stop loss level (locked forever)\n- `EXPIRED` → Signal expired without hitting target or stop loss (locked forever)\n\n## Validation Rules\n**BUY:** stop_loss < entry_price < target_price\n**SELL:** target_price < entry_price < stop_loss\n\n## ROI Formula\n**BUY ROI:** (current_price - entry_price) / entry_price × 100\n**SELL ROI:** (entry_price - current_price) / entry_price × 100",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string",
+      "description": "Base URL of the backend server"
+    },
+    {
+      "key": "signalId",
+      "value": "1",
+      "type": "string",
+      "description": "Auto-set after creating a signal — used in single signal requests"
+    },
+    {
+      "key": "deleteSignalId",
+      "value": "",
+      "type": "string",
+      "description": "Auto-set before delete test"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET / — Server Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Check if the server is running. Returns a simple message."
+          },
+          "response": [
+            {
+              "name": "Server Running",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"KillShill Signal Tracker API is running\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "POST /api/signals — Create Signal",
+      "item": [
+        {
+          "name": "Create BUY Signal — BTCUSDT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('signalId', json.data.id);",
+                  "  console.log('Signal ID saved:', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 90000,\n  \"stop_loss\": 85000,\n  \"target_price\": 95000,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Creates a valid BUY signal for BTCUSDT.\n\n**BUY Rules Applied:**\n- stop_loss (85000) < entry_price (90000) ✅\n- target_price (95000) > entry_price (90000) ✅\n- expiry_time is after entry_time ✅\n\n**Expected Response:** 201 Created"
+          },
+          "response": [
+            {
+              "name": "201 — Signal Created Successfully",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"symbol\": \"BTCUSDT\",\n    \"direction\": \"BUY\",\n    \"entry_price\": \"90000\",\n    \"stop_loss\": \"85000\",\n    \"target_price\": \"95000\",\n    \"entry_time\": \"2026-04-25T10:00:00.000Z\",\n    \"expiry_time\": \"2026-04-30T10:00:00.000Z\",\n    \"status\": \"OPEN\",\n    \"realized_roi\": null,\n    \"created_at\": \"2026-04-25T12:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create SELL Signal — ETHUSDT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('signalId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"ETHUSDT\",\n  \"direction\": \"SELL\",\n  \"entry_price\": 3000,\n  \"stop_loss\": 3200,\n  \"target_price\": 2700,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Creates a valid SELL signal for ETHUSDT.\n\n**SELL Rules Applied:**\n- stop_loss (3200) > entry_price (3000) ✅\n- target_price (2700) < entry_price (3000) ✅\n- expiry_time is after entry_time ✅\n\n**Expected Response:** 201 Created"
+          },
+          "response": [
+            {
+              "name": "201 — SELL Signal Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 2,\n    \"symbol\": \"ETHUSDT\",\n    \"direction\": \"SELL\",\n    \"entry_price\": \"3000\",\n    \"stop_loss\": \"3200\",\n    \"target_price\": \"2700\",\n    \"entry_time\": \"2026-04-25T10:00:00.000Z\",\n    \"expiry_time\": \"2026-04-30T10:00:00.000Z\",\n    \"status\": \"OPEN\",\n    \"realized_roi\": null,\n    \"created_at\": \"2026-04-25T12:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create BUY Signal — SOLUSDT",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"SOLUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 140,\n  \"stop_loss\": 125,\n  \"target_price\": 170,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Creates a valid BUY signal for SOLUSDT.\n\n**Expected Response:** 201 Created"
+          },
+          "response": []
+        },
+        {
+          "name": "Create SELL Signal — BNBUSDT",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BNBUSDT\",\n  \"direction\": \"SELL\",\n  \"entry_price\": 600,\n  \"stop_loss\": 650,\n  \"target_price\": 520,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Creates a valid SELL signal for BNBUSDT.\n\n**Expected Response:** 201 Created"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Signal — Symbol Lowercase (auto uppercase)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"btcusdt\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 88000,\n  \"stop_loss\": 83000,\n  \"target_price\": 93000,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Sends symbol in lowercase. API should auto-uppercase it to BTCUSDT.\n\n**Expected Response:** 201 — symbol saved as BTCUSDT"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Signal — Entry Time 12hrs In Past (allowed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"XRPUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 2,\n  \"stop_loss\": 1.8,\n  \"target_price\": 2.5,\n  \"entry_time\": \"2026-04-25T02:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Entry time is ~12 hours in the past — this is allowed per spec (up to 24hrs).\n\n**Expected Response:** 201 Created"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ 400 — Missing Required Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"direction\": \"BUY\"\n}"
+            },
+            "description": "Missing entry_price, stop_loss, target_price, entry_time, expiry_time.\n\n**Expected Response:** 400 — All fields are required"
+          },
+          "response": [
+            {
+              "name": "400 — Missing Fields",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"All fields are required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 400 — Invalid Direction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"direction\": \"LONG\",\n  \"entry_price\": 90000,\n  \"stop_loss\": 85000,\n  \"target_price\": 95000,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Direction is LONG — only BUY and SELL are valid.\n\n**Expected Response:** 400 — Direction must be BUY or SELL"
+          },
+          "response": [
+            {
+              "name": "400 — Invalid Direction",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Direction must be BUY or SELL\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 400 — BUY Stop Loss Above Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 90000,\n  \"stop_loss\": 95000,\n  \"target_price\": 100000,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "BUY signal where stop_loss (95000) > entry_price (90000) — invalid.\n\n**Expected Response:** 400 — Stop loss must be below entry price for BUY"
+          },
+          "response": [
+            {
+              "name": "400 — BUY Stop Loss Above Entry",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Stop loss must be below entry price for BUY\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 400 — BUY Target Below Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 90000,\n  \"stop_loss\": 85000,\n  \"target_price\": 80000,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "BUY signal where target_price (80000) < entry_price (90000) — invalid.\n\n**Expected Response:** 400 — Target price must be above entry price for BUY"
+          },
+          "response": [
+            {
+              "name": "400 — BUY Target Below Entry",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Target price must be above entry price for BUY\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 400 — SELL Stop Loss Below Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"ETHUSDT\",\n  \"direction\": \"SELL\",\n  \"entry_price\": 3000,\n  \"stop_loss\": 2800,\n  \"target_price\": 2500,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "SELL signal where stop_loss (2800) < entry_price (3000) — invalid.\n\n**Expected Response:** 400 — Stop loss must be above entry price for SELL"
+          },
+          "response": [
+            {
+              "name": "400 — SELL Stop Loss Below Entry",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Stop loss must be above entry price for SELL\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 400 — SELL Target Above Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"ETHUSDT\",\n  \"direction\": \"SELL\",\n  \"entry_price\": 3000,\n  \"stop_loss\": 3200,\n  \"target_price\": 3500,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "SELL signal where target_price (3500) > entry_price (3000) — invalid.\n\n**Expected Response:** 400 — Target price must be below entry price for SELL"
+          },
+          "response": [
+            {
+              "name": "400 — SELL Target Above Entry",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Target price must be below entry price for SELL\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 400 — Expiry Before Entry Time",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 90000,\n  \"stop_loss\": 85000,\n  \"target_price\": 95000,\n  \"entry_time\": \"2026-04-30T10:00:00Z\",\n  \"expiry_time\": \"2026-04-25T10:00:00Z\"\n}"
+            },
+            "description": "expiry_time is before entry_time — invalid.\n\n**Expected Response:** 400 — Expiry time must be after entry time"
+          },
+          "response": [
+            {
+              "name": "400 — Expiry Before Entry",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Expiry time must be after entry time\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 400 — Entry Time More Than 24hrs Ago",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 90000,\n  \"stop_loss\": 85000,\n  \"target_price\": 95000,\n  \"entry_time\": \"2026-04-20T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Entry time is 5 days ago — exceeds the 24hr historical limit.\n\n**Expected Response:** 400 — Entry time cannot be more than 24 hours in the past"
+          },
+          "response": [
+            {
+              "name": "400 — Entry Too Old",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Entry time cannot be more than 24 hours in the past\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 400 — Non-Numeric Price Values",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": \"ninety-thousand\",\n  \"stop_loss\": 85000,\n  \"target_price\": 95000,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "entry_price is a string instead of a number.\n\n**Expected Response:** 400 — Prices must be valid numbers"
+          },
+          "response": [
+            {
+              "name": "400 — Invalid Price",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Prices must be valid numbers\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GET /api/signals — List All Signals",
+      "item": [
+        {
+          "name": "Get All Signals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "description": "Returns all signals ordered by created_at descending.\n\n**Each signal includes:**\n- All stored fields\n- `current_price` — live Binance price (only for OPEN signals, null for resolved)\n- `roi` — calculated ROI to 2 decimal places\n\n**Status is auto-evaluated on every call:**\n- If an OPEN signal has hit target/stoploss/expired → status updated in DB\n- realized_roi saved permanently on resolution\n\n**Expected Response:** 200"
+          },
+          "response": [
+            {
+              "name": "200 — All Signals",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"symbol\": \"BTCUSDT\",\n      \"direction\": \"BUY\",\n      \"entry_price\": \"90000\",\n      \"stop_loss\": \"85000\",\n      \"target_price\": \"95000\",\n      \"entry_time\": \"2026-04-25T10:00:00.000Z\",\n      \"expiry_time\": \"2026-04-30T10:00:00.000Z\",\n      \"status\": \"OPEN\",\n      \"realized_roi\": null,\n      \"created_at\": \"2026-04-25T12:00:00.000Z\",\n      \"current_price\": 92500.45,\n      \"roi\": 2.78\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GET /api/signals/:id — Get Single Signal",
+      "item": [
+        {
+          "name": "Get Signal By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/{{signalId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "{{signalId}}"]
+            },
+            "description": "Fetch a single signal by its ID.\n\n**If OPEN:** Returns signal with live current_price and computed ROI\n**If resolved:** Returns signal with null current_price and stored realized_roi\n\n**Expected Response:** 200"
+          },
+          "response": [
+            {
+              "name": "200 — Signal Found (OPEN)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"symbol\": \"BTCUSDT\",\n    \"direction\": \"BUY\",\n    \"entry_price\": \"90000\",\n    \"stop_loss\": \"85000\",\n    \"target_price\": \"95000\",\n    \"entry_time\": \"2026-04-25T10:00:00.000Z\",\n    \"expiry_time\": \"2026-04-30T10:00:00.000Z\",\n    \"status\": \"OPEN\",\n    \"realized_roi\": null,\n    \"created_at\": \"2026-04-25T12:00:00.000Z\",\n    \"current_price\": 92500.45,\n    \"roi\": 2.78\n  }\n}"
+            },
+            {
+              "name": "200 — Signal Found (STOPLOSS_HIT)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"symbol\": \"BTCUSDT\",\n    \"direction\": \"BUY\",\n    \"entry_price\": \"90000\",\n    \"stop_loss\": \"85000\",\n    \"target_price\": \"95000\",\n    \"status\": \"STOPLOSS_HIT\",\n    \"realized_roi\": \"-13.69\",\n    \"current_price\": null,\n    \"roi\": -13.69\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Signal By ID — Manually Enter ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "1"]
+            },
+            "description": "Fetch signal with ID 1. Change the ID in the URL as needed.\n\n**Expected Response:** 200"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ 404 — Signal Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "999999"]
+            },
+            "description": "Signal with ID 999999 does not exist.\n\n**Expected Response:** 404 — Signal not found"
+          },
+          "response": [
+            {
+              "name": "404 — Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Signal not found\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GET /api/signals/:id/status — Live Status",
+      "item": [
+        {
+          "name": "Get Live Status By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/{{signalId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "{{signalId}}", "status"]
+            },
+            "description": "Returns the current live status of a signal.\n\n**Response includes:**\n- `id` — signal ID\n- `status` — current status (OPEN / TARGET_HIT / STOPLOSS_HIT / EXPIRED)\n- `current_price` — live Binance price (only if OPEN)\n- `roi` — current ROI\n\n**Expected Response:** 200"
+          },
+          "response": [
+            {
+              "name": "200 — Live Status (OPEN)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"status\": \"OPEN\",\n    \"current_price\": 92500.45,\n    \"roi\": 2.78\n  }\n}"
+            },
+            {
+              "name": "200 — Live Status (TARGET_HIT)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"status\": \"TARGET_HIT\",\n    \"current_price\": null,\n    \"roi\": 5.56\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Live Status — Manually Enter ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "1", "status"]
+            },
+            "description": "Get live status for signal ID 1. Change ID as needed.\n\n**Expected Response:** 200"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ 404 — Status For Non-Existent Signal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/999999/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "999999", "status"]
+            },
+            "description": "Signal with ID 999999 does not exist.\n\n**Expected Response:** 404 — Signal not found"
+          },
+          "response": [
+            {
+              "name": "404 — Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Signal not found\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DELETE /api/signals/:id — Delete Signal",
+      "item": [
+        {
+          "name": "Create Signal For Delete Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('deleteSignalId', json.data.id);",
+                  "  console.log('Delete signal ID saved:', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"ADAUSDT\",\n  \"direction\": \"BUY\",\n  \"entry_price\": 1.2,\n  \"stop_loss\": 1.0,\n  \"target_price\": 1.5,\n  \"entry_time\": \"2026-04-25T10:00:00Z\",\n  \"expiry_time\": \"2026-04-30T10:00:00Z\"\n}"
+            },
+            "description": "Creates a temporary signal to be deleted in the next request. ID is auto-saved to `deleteSignalId` variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Signal By ID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/{{deleteSignalId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "{{deleteSignalId}}"]
+            },
+            "description": "Deletes the signal created in the previous request.\n\n**Expected Response:** 204 No Content (empty body)"
+          },
+          "response": [
+            {
+              "name": "204 — Deleted Successfully",
+              "status": "No Content",
+              "code": 204,
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Delete Signal — Manually Enter ID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "1"]
+            },
+            "description": "Delete signal by manually entering the ID in the URL.\n\n**Expected Response:** 204 No Content"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ 404 — Delete Non-Existent Signal",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "999999"]
+            },
+            "description": "Signal with ID 999999 does not exist.\n\n**Expected Response:** 404 — Signal not found"
+          },
+          "response": [
+            {
+              "name": "404 — Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Signal not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ 404 — Delete Already Deleted Signal",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/signals/{{deleteSignalId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "signals", "{{deleteSignalId}}"]
+            },
+            "description": "Tries to delete a signal that was already deleted.\n\n**Expected Response:** 404 — Signal not found"
+          },
+          "response": [
+            {
+              "name": "404 — Already Deleted",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Signal not found\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
