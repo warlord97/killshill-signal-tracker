@@ -90,7 +90,7 @@ Make sure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/killshill-signal-tracker.git
+git clone https://github.com/warlord97/killshill-signal-tracker.git
 cd killshill-signal-tracker
 ```
 
